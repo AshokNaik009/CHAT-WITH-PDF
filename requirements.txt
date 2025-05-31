@@ -10,3 +10,4 @@ pandas==2.1.4
 aiohttp==3.9.1
 torch==2.1.1
 transformers==4.36.2
+python-dotenv==1.0.0
