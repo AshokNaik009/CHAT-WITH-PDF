@@ -4,6 +4,7 @@ Production-ready implementation for Back4app Container deployment
 """
 
 import os
+import sys
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,10 +12,19 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
-# Import our modules
-from api.upload import upload_router
-from api.chat import chat_router
-from models.chat_engine import ChatEngine
+# Add current directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import our modules (now should work)
+try:
+    from api.upload import upload_router
+    from api.chat import chat_router
+    from models.chat_engine import ChatEngine
+except ImportError as e:
+    print(f"Import error: {e}")
+    print("Make sure all __init__.py files exist and code files are in correct directories")
+    sys.exit(1)
+    
 
 # Configure logging for production
 logging.basicConfig(

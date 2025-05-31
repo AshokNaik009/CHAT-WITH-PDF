@@ -14,7 +14,11 @@ from pydantic import BaseModel, Field, validator
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from main import get_chat_engine
+def get_chat_engine():
+    from main import chat_engine
+    if chat_engine is None:
+        raise HTTPException(status_code=503, detail="Chat engine not initialized")
+    return chat_engine
 
 logger = logging.getLogger(__name__)
 
