@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with PDF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .dark .glassmorphism {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .message-bubble {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .scroll-smooth {
+            scroll-behavior: smooth;
+        }
+        .drag-over {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900 min-h-screen transition-colors duration-300">
+    <!-- Navigation -->
+    <nav class="glassmorphism p-4 mb-6">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m-7 8l4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-9l-4 4z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800 dark:text-white">Chat with PDF</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div id="connection-status" class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Connected</span>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-lg glassmorphism hover:bg-white/20 transition-colors">
+                    <svg id="sun-icon" class="w-5 h-5 text-gray-600 dark:text-gray-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <svg id="moon-icon" class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 pb-8">
+        <div class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-120px)]">
+            <!-- Sidebar -->
+            <div class="w-full lg:w-80 space-y-6">
+                <!-- Upload Section -->
+                <div class="glassmorphism rounded-xl p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Upload PDF</h2>
+                    <div id="upload-area" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center transition-all duration-300 hover:border-blue-400 cursor-pointer">
+                        <div id="upload-content">
+                            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <p class="text-gray-600 dark:text-gray-400 mb-2">Drag & drop your PDF file here</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-500 mb-4">or click to browse</p>
+                            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                Choose File
+                            </button>
+                        </div>
+                        <div id="upload-progress" class="hidden">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p class="text-blue-600 dark:text-blue-400">Processing PDF...</p>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-4">
+                                <div id="progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="file-input" class="hidden" accept=".pdf">
+                </div>
+
+                <!-- Documents List -->
+                <div class="glassmorphism rounded-xl p-6 flex-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Documents</h2>
+                        <button id="refresh-docs" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="documents-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <div id="documents-loading" class="text-center py-8">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">Loading documents...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Section -->
+            <div class="flex-1 flex flex-col">
+                <div class="glassmorphism rounded-xl flex-1 flex flex-col overflow-hidden">
+                    <!-- Chat Header -->
+                    <div class="p-4 border-b border-white/20 dark:border-gray-700/50">
+                        <div id="chat-header-content" class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gradient-to-r from-gray-400 to-gray-500 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 dark:text-white">Select a document to start chatting</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Upload a PDF and ask questions about its content</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Container -->
+                    <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+                        <div id="welcome-message" class="text-center py-12">
+                            <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m-7 8l4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-9l-4 4z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-2">Welcome to Chat with PDF</h3>
+                            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto">Upload a PDF document and start asking questions. I'll help you find answers based on the document's content.</p>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div id="chat-input-container" class="p-4 border-t border-white/20 dark:border-gray-700/50 hidden">
+                        <form id="chat-form" class="flex space-x-3">
+                            <div class="flex-1 relative">
+                                <input 
+                                    type="text" 
+                                    id="message-input" 
+                                    placeholder="Ask a question about the document..." 
+                                    class="w-full px-4 py-3 bg-white/50 dark:bg-gray-800/50 border border-white/30 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    disabled
+                                >
+                                <div id="input-loading" class="hidden absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                                </div>
+                            </div>
+                            <button 
+                                type="submit" 
+                                id="send-button"
+                                class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
+                                disabled
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                                <span>Send</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="glassmorphism rounded-xl p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-white text-lg">Processing...</p>
+        </div>
+    </div>
+
+ <script>
+// Configuration
+const API_BASE_URL = 'http://localhost:8000';
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+// Global state
+let currentDocumentId = null;
+let documents = [];
+let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+// Initialize theme
+if (isDarkMode) {
+    document.documentElement.classList.add('dark');
+    document.getElementById('sun-icon').classList.remove('hidden');
+    document.getElementById('moon-icon').classList.add('hidden');
+}
+
+// Theme Manager Class
+class ThemeManager {
+    constructor() {
+        this.themeToggle = document.getElementById('theme-toggle');
+        this.sunIcon = document.getElementById('sun-icon');
+        this.moonIcon = document.getElementById('moon-icon');
+        this.init();
+    }
+
+    init() {
+        this.themeToggle.addEventListener('click', () => this.toggleTheme());
+    }
+
+    toggleTheme() {
+        isDarkMode = !isDarkMode;
+        localStorage.setItem('darkMode', isDarkMode);
+        
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+            this.sunIcon.classList.remove('hidden');
+            this.moonIcon.classList.add('hidden');
+        } else {
+            document.documentElement.classList.remove('dark');
+            this.sunIcon.classList.add('hidden');
+            this.moonIcon.classList.remove('hidden');
+        }
+    }
+}
+
+// Notification System Class
+class NotificationSystem {
+    constructor() {
+        this.container = document.getElementById('toast-container');
+    }
+
+    show(message, type = 'info', duration = 5000) {
+        const toast = document.createElement('div');
+        toast.className = `glassmorphism rounded-lg p-4 shadow-lg animate-slide-up max-w-sm ${this.getTypeClasses(type)}`;
+        
+        toast.innerHTML = `
+            <div class="flex items-center space-x-3">
+                ${this.getIcon(type)}
+                <div class="flex-1">
+                    <p class="text-sm font-medium">${message}</p>
+                </div>
+                <button class="text-gray-400 hover:text-gray-600 transition-colors" onclick="this.parentElement.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+
+        this.container.appendChild(toast);
+
+        if (duration > 0) {
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, duration);
+        }
+    }
+
+    getTypeClasses(type) {
+        const classes = {
+            success: 'border-green-200 text-green-800 dark:text-green-200',
+            error: 'border-red-200 text-red-800 dark:text-red-200',
+            warning: 'border-yellow-200 text-yellow-800 dark:text-yellow-200',
+            info: 'border-blue-200 text-blue-800 dark:text-blue-200'
+        };
+        return classes[type] || classes.info;
+    }
+
+    getIcon(type) {
+        const icons = {
+            success: '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+            error: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>',
+            warning: '<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>',
+            info: '<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+        };
+        return icons[type] || icons.info;
+    }
+}
+
+// File Uploader Class
+class FileUploader {
+    constructor() {
+        this.uploadArea = document.getElementById('upload-area');
+        this.fileInput = document.getElementById('file-input');
+        this.uploadContent = document.getElementById('upload-content');
+        this.uploadProgress = document.getElementById('upload-progress');
+        this.progressBar = document.getElementById('progress-bar');
+        this.init();
+    }
+
+    init() {
+        // Drag and drop events
+        this.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
+        this.uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+        this.uploadArea.addEventListener('click', () => this.fileInput.click());
+        
+        // File input change
+        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files[0]));
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        this.uploadArea.classList.add('drag-over');
+    }
+
+    handleDragLeave(e) {
+        e.preventDefault();
+        this.uploadArea.classList.remove('drag-over');
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        this.uploadArea.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        this.handleFileSelect(file);
+    }
+
+    async handleFileSelect(file) {
+        if (!file) return;
+
+        if (!this.validateFile(file)) return;
+
+        this.showProgress();
+        
+        try {
+            await this.uploadFile(file);
+            notificationSystem.show('PDF uploaded successfully!', 'success');
+            documentManager.loadDocuments();
+        } catch (error) {
+            notificationSystem.show(`Upload failed: ${error.message}`, 'error');
+        } finally {
+            this.hideProgress();
+        }
+    }
+
+    validateFile(file) {
+        if (file.type !== 'application/pdf') {
+            notificationSystem.show('Please select a PDF file', 'error');
+            return false;
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+            notificationSystem.show('File size exceeds 50MB limit', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    async uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`${API_BASE_URL}/api/v1/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Upload failed');
+        }
+
+        return await response.json();
+    }
+
+    showProgress() {
+        this.uploadContent.classList.add('hidden');
+        this.uploadProgress.classList.remove('hidden');
+        
+        // Simulate progress
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 90) {
+                progress = 90;
+                clearInterval(interval);
+            }
+            this.progressBar.style.width = `${progress}%`;
+        }, 200);
+    }
+
+    hideProgress() {
+        this.uploadContent.classList.remove('hidden');
+        this.uploadProgress.classList.add('hidden');
+        this.progressBar.style.width = '0%';
+    }
+}
+
+// Document Manager Class
+class DocumentManager {
+    constructor() {
+        this.documentsList = document.getElementById('documents-list');
+        this.documentsLoading = document.getElementById('documents-loading');
+        this.refreshButton = document.getElementById('refresh-docs');
+        this.init();
+    }
+
+    init() {
+        this.refreshButton.addEventListener('click', () => this.loadDocuments());
+        this.loadDocuments();
+    }
+
+    async loadDocuments() {
+        this.showLoading();
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/documents`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Validate that we received an array
+            if (!Array.isArray(data)) {
+                console.error('API returned non-array data:', data);
+                // Handle case where API returns object with documents array
+                if (data && Array.isArray(data.documents)) {
+                    documents = data.documents;
+                } else if (data && typeof data === 'object') {
+                    // If it's an object, try to extract documents or convert to array
+                    documents = [];
+                    console.warn('Expected array but got object, setting empty documents array');
+                } else {
+                    throw new Error('Invalid response format: expected array of documents');
+                }
+            } else {
+                documents = data;
+            }
+            
+            console.log('Loaded documents:', documents);
+            this.renderDocuments();
+        } catch (error) {
+            console.error('Error loading documents:', error);
+            notificationSystem.show(`Failed to load documents: ${error.message}`, 'error');
+            documents = []; // Reset to empty array on error
+            this.renderError();
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    showLoading() {
+        this.documentsLoading.classList.remove('hidden');
+    }
+
+    hideLoading() {
+        this.documentsLoading.classList.add('hidden');
+    }
+
+    renderDocuments() {
+        // Ensure documents is always an array
+        if (!Array.isArray(documents)) {
+            console.error('Documents is not an array:', documents);
+            documents = [];
+        }
+
+        if (documents.length === 0) {
+            this.documentsList.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="text-gray-500 dark:text-gray-400">No documents uploaded yet</p>
+                </div>
+            `;
+            return;
+        }
+
+        this.documentsList.innerHTML = documents.map(doc => {
+            // Validate document object
+            if (!doc || typeof doc !== 'object') {
+                console.warn('Invalid document object:', doc);
+                return '';
+            }
+
+            const docId = doc.id || doc.document_id || '';
+            const filename = doc.filename || doc.name || 'Unknown Document';
+            const pages = doc.pages || doc.page_count || 0;
+
+            return `
+                <div class="document-item p-3 rounded-lg bg-white/30 dark:bg-gray-800/30 border border-white/20 dark:border-gray-700/50 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all cursor-pointer ${currentDocumentId === docId ? 'ring-2 ring-blue-500' : ''}" data-doc-id="${docId}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-medium text-gray-800 dark:text-white truncate">${this.escapeHtml(filename)}</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${pages} pages</p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-3">
+                            <button class="delete-doc text-red-500 hover:text-red-700 p-1" data-doc-id="${docId}" title="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).filter(html => html !== '').join(''); // Filter out empty strings from invalid documents
+
+        // Add event listeners
+        this.documentsList.querySelectorAll('.document-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (!e.target.closest('.delete-doc')) {
+                    this.selectDocument(item.dataset.docId);
+                }
+            });
+        });
+
+        this.documentsList.querySelectorAll('.delete-doc').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteDocument(button.dataset.docId);
+            });
+        });
+    }
+
+    renderError() {
+        this.documentsList.innerHTML = `
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                <p class="text-red-500 dark:text-red-400">Failed to load documents</p>
+                <button class="mt-2 text-blue-500 hover:text-blue-700" onclick="documentManager.loadDocuments()">Try Again</button>
+            </div>
+        `;
+    }
+
+    selectDocument(docId) {
+        currentDocumentId = docId;
+        const selectedDoc = documents.find(doc => {
+            const id = doc.id || doc.document_id || '';
+            return id === docId;
+        });
+        
+        if (selectedDoc) {
+            // Update UI to show selected document
+            this.renderDocuments(); // Re-render to show selection
+            chatInterface.setActiveDocument(selectedDoc);
+        } else {
+            console.error('Document not found:', docId);
+            notificationSystem.show('Document not found', 'error');
+        }
+    }
+
+    // Add helper method for HTML escaping
+    escapeHtml(text) {
+        if (typeof text !== 'string') return String(text || '');
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async deleteDocument(docId) {
+        if (!confirm('Are you sure you want to delete this document?')) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/documents/${docId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) throw new Error('Failed to delete document');
+
+            notificationSystem.show('Document deleted successfully', 'success');
+            
+            if (currentDocumentId === docId) {
+                currentDocumentId = null;
+                chatInterface.clearChat();
+            }
+            
+            this.loadDocuments();
+        } catch (error) {
+            notificationSystem.show(`Failed to delete document: ${error.message}`, 'error');
+        }
+    }
+}
+
+// Chat Interface Class
+class ChatInterface {
+    constructor() {
+        this.messagesContainer = document.getElementById('messages-container');
+        this.welcomeMessage = document.getElementById('welcome-message');
+        this.chatForm = document.getElementById('chat-form');
+        this.messageInput = document.getElementById('message-input');
+        this.sendButton = document.getElementById('send-button');
+        this.chatInputContainer = document.getElementById('chat-input-container');
+        this.chatHeaderContent = document.getElementById('chat-header-content');
+        this.inputLoading = document.getElementById('input-loading');
+        
+        this.messages = [];
+        this.init();
+    }
+
+    init() {
+        this.chatForm.addEventListener('submit', (e) => this.handleSubmit(e));
+        this.messageInput.addEventListener('input', () => this.handleInputChange());
+        this.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.handleSubmit(e);
+            }
+        });
+    }
+
+    setActiveDocument(document) {
+        this.welcomeMessage.classList.add('hidden');
+        this.chatInputContainer.classList.remove('hidden');
+        this.messageInput.disabled = false;
+        this.sendButton.disabled = false;
+        
+        // Update chat header
+        this.chatHeaderContent.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800 dark:text-white">${document.filename}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${document.pages} pages • Ready to chat</p>
+                </div>
+            </div>
+        `;
+
+        this.clearMessages();
+        this.addMessage({
+            type: 'system',
+            content: `Document "${document.filename}" is now active. You can start asking questions about its content!`,
+            timestamp: new Date()
+        });
+    }
+
+    clearChat() {
+        this.welcomeMessage.classList.remove('hidden');
+        this.chatInputContainer.classList.add('hidden');
+        this.messageInput.disabled = true;
+        this.sendButton.disabled = true;
+        
+        // Reset chat header
+        this.chatHeaderContent.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-r from-gray-400 to-gray-500 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800 dark:text-white">Select a document to start chatting</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Upload a PDF and ask questions about its content</p>
+                </div>
+            </div>
+        `;
+
+        this.clearMessages();
+    }
+
+    clearMessages() {
+        this.messages = [];
+        this.renderMessages();
+    }
+
+    handleInputChange() {
+        const hasText = this.messageInput.value.trim().length > 0;
+        this.sendButton.disabled = !hasText || !currentDocumentId;
+    }
+
+    async handleSubmit(e) {
+        e.preventDefault();
+        
+        const message = this.messageInput.value.trim();
+        if (!message || !currentDocumentId) return;
+
+        this.messageInput.value = '';
+        this.handleInputChange();
+
+        // Add user message
+        this.addMessage({
+            type: 'user',
+            content: message,
+            timestamp: new Date()
+        });
+
+        // Show loading state
+        this.showLoading(true);
+
+        try {
+            const response = await this.sendMessage(message);
+            
+            // Add assistant response - handle the correct API response format
+            this.addMessage({
+                type: 'assistant',
+                content: response.answer || response.response || 'No response received',
+                confidence: response.confidence ? Math.round(response.confidence * 100) : undefined,
+                sources: response.sources || [],
+                responseType: response.response_type,
+                processingTime: response.processing_time_ms,
+                timestamp: new Date()
+            });
+        } catch (error) {
+            console.error('Chat error:', error);
+            this.addMessage({
+                type: 'error',
+                content: `Sorry, I encountered an error: ${error.message}`,
+                timestamp: new Date()
+            });
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async sendMessage(message) {
+        const response = await fetch(`${API_BASE_URL}/api/v1/chat/${currentDocumentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                question: message,
+                use_llm: true,
+                max_chunks: 5
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    addMessage(message) {
+        this.messages.push(message);
+        this.renderMessages();
+        this.scrollToBottom();
+    }
+
+    showLoading(show) {
+        if (show) {
+            this.inputLoading.classList.remove('hidden');
+            this.sendButton.disabled = true;
+            this.messageInput.disabled = true;
+        } else {
+            this.inputLoading.classList.add('hidden');
+            this.sendButton.disabled = false;
+            this.messageInput.disabled = false;
+            this.messageInput.focus();
+        }
+    }
+
+    renderMessages() {
+        const messagesHtml = this.messages.map(message => {
+            switch (message.type) {
+                case 'user':
+                    return this.renderUserMessage(message);
+                case 'assistant':
+                    return this.renderAssistantMessage(message);
+                case 'system':
+                    return this.renderSystemMessage(message);
+                case 'error':
+                    return this.renderErrorMessage(message);
+                default:
+                    return '';
+            }
+        }).join('');
+
+        // Only update if we have messages, otherwise show welcome
+        if (this.messages.length > 0) {
+            this.messagesContainer.innerHTML = messagesHtml;
+            this.welcomeMessage.classList.add('hidden');
+        }
+    }
+
+    renderUserMessage(message) {
+        return `
+            <div class="flex justify-end animate-slide-up">
+                <div class="message-bubble bg-blue-500 text-white p-4 rounded-2xl rounded-br-md">
+                    <p class="whitespace-pre-wrap">${this.escapeHtml(message.content)}</p>
+                    <p class="text-xs text-blue-100 mt-2">${this.formatTime(message.timestamp)}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    renderAssistantMessage(message) {
+        const confidence = message.confidence;
+        const confidenceColor = confidence ? this.getConfidenceColor(confidence) : '';
+        
+        const sourcesHtml = message.sources && message.sources.length > 0 
+            ? `<div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Sources:</p>
+                <div class="space-y-1">
+                    ${message.sources.map((source, index) => {
+                        const similarity = source.similarity ? Math.round(source.similarity * 100) : '';
+                        const chunkText = source.text ? source.text.substring(0, 100) + '...' : '';
+                        return `
+                            <div class="bg-gray-100 dark:bg-gray-700 text-xs p-2 rounded">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-medium">Chunk ${source.chunk_id || index + 1}</span>
+                                    ${similarity ? `<span class="text-gray-500">${similarity}% match</span>` : ''}
+                                </div>
+                                ${chunkText ? `<p class="text-gray-600 dark:text-gray-300">${this.escapeHtml(chunkText)}</p>` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+               </div>`
+            : '';
+
+        const metaInfo = [];
+        if (message.responseType) metaInfo.push(`Type: ${message.responseType}`);
+        if (message.processingTime) metaInfo.push(`${message.processingTime}ms`);
+
+        return `
+            <div class="flex justify-start animate-slide-up">
+                <div class="message-bubble bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-2xl rounded-bl-md">
+                    <p class="text-gray-800 dark:text-white whitespace-pre-wrap">${this.escapeHtml(message.content)}</p>
+                    ${confidence !== undefined ? `
+                        <div class="mt-3 flex items-center space-x-2">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Confidence:</span>
+                            <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 max-w-20">
+                                <div class="${confidenceColor} h-2 rounded-full" style="width: ${confidence}%"></div>
+                            </div>
+                            <span class="text-xs ${confidenceColor.replace('bg-', 'text-')}">${confidence}%</span>
+                        </div>
+                    ` : ''}
+                    ${sourcesHtml}
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-xs text-gray-400">${this.formatTime(message.timestamp)}</p>
+                        ${metaInfo.length > 0 ? `<p class="text-xs text-gray-400">${metaInfo.join(' • ')}</p>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderSystemMessage(message) {
+        return `
+            <div class="flex justify-center animate-slide-up">
+                <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-lg text-sm">
+                    ${this.escapeHtml(message.content)}
+                </div>
+            </div>
+        `;
+    }
+
+    renderErrorMessage(message) {
+        return `
+            <div class="flex justify-center animate-slide-up">
+                <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-2 rounded-lg text-sm">
+                    ${this.escapeHtml(message.content)}
+                </div>
+            </div>
+        `;
+    }
+
+    getConfidenceColor(confidence) {
+        if (confidence >= 80) return 'bg-green-500';
+        if (confidence >= 60) return 'bg-yellow-500';
+        return 'bg-red-500';
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    formatTime(timestamp) {
+        return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    scrollToBottom() {
+        setTimeout(() => {
+            this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        }, 100);
+    }
+}
+
+// Health Check Class
+class HealthMonitor {
+    constructor() {
+        this.connectionStatus = document.getElementById('connection-status');
+        this.init();
+    }
+
+    init() {
+        this.checkHealth();
+        setInterval(() => this.checkHealth(), 30000); // Check every 30 seconds
+    }
+
+    async checkHealth() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/health`);
+            if (response.ok) {
+                this.updateStatus(true);
+            } else {
+                this.updateStatus(false);
+            }
+        } catch (error) {
+            this.updateStatus(false);
+        }
+    }
+
+    updateStatus(isHealthy) {
+        const statusDot = this.connectionStatus.querySelector('div');
+        const statusText = this.connectionStatus.querySelector('span');
+
+        if (isHealthy) {
+            statusDot.className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse';
+            statusText.textContent = 'Connected';
+            statusText.className = 'text-sm text-gray-600 dark:text-gray-400';
+        } else {
+            statusDot.className = 'w-2 h-2 bg-red-500 rounded-full animate-pulse';
+            statusText.textContent = 'Disconnected';
+            statusText.className = 'text-sm text-red-600 dark:text-red-400';
+        }
+    }
+}
+
+// Initialize application
+let notificationSystem, themeManager, fileUploader, documentManager, chatInterface, healthMonitor;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize all components
+    notificationSystem = new NotificationSystem();
+    themeManager = new ThemeManager();
+    fileUploader = new FileUploader();
+    documentManager = new DocumentManager();
+    chatInterface = new ChatInterface();
+    healthMonitor = new HealthMonitor();
+
+    // Show welcome notification
+    setTimeout(() => {
+        notificationSystem.show('Welcome to Chat with PDF! Upload a document to get started.', 'info', 3000);
+    }, 1000);
+});
+
+// Handle page visibility change for health monitoring
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && healthMonitor) {
+        healthMonitor.checkHealth();
+    }
+});
+
+// Handle online/offline events
+window.addEventListener('online', () => {
+    if (healthMonitor) healthMonitor.checkHealth();
+    notificationSystem.show('Connection restored', 'success', 3000);
+});
+
+window.addEventListener('offline', () => {
+    if (healthMonitor) healthMonitor.updateStatus(false);
+    notificationSystem.show('Connection lost', 'warning', 5000);
+});
+
+// Error handling for unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    notificationSystem.show('An unexpected error occurred', 'error');
+});
+
+// Global error handler
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+    notificationSystem.show('An unexpected error occurred', 'error');
+});
+</script>
+   </body>
+</html>
